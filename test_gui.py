@@ -5,13 +5,13 @@ import bluetooth
 #Look for all Bluetooth devices
 #the computer knows about.
 print("Searching for devices...")
-print("")
+print ("")
 #Create an array with all the MAC
 #addresses of the detected devices
 nearby_devices = bluetooth.discover_devices()
 #Run through all the devices found and list their name
 num = 0
-print("Select your device by entering its coresponding number...")
+print ("Select your device by entering its coresponding number...")
 for i in nearby_devices:
 	num+=1
 	print(num , ": " , bluetooth.lookup_name( i ))
@@ -20,7 +20,7 @@ for i in nearby_devices:
 #bluetooth module. They must have paired
 #it before hand.
 selection = int(input("> ")) - 1
-print("You have selected", bluetooth.lookup_name(nearby_devices[selection]))
+print ("You have selected", bluetooth.lookup_name(nearby_devices[selection]))
 bd_addr = nearby_devices[selection]
 
 port = 1
@@ -39,13 +39,13 @@ class Application(Frame):
     def on(self):
     	#Send 'H' which the Arduino
     	#detects as turning the light on
-        data = bytes("H",'ascii')
+        data = bytes("H", 'utf-8')
         self.sock.send(data)
 
     def off(self):
     	#Send 'L' to turn off the light
     	#attached to the Arduino
-        data = bytes("L", 'ascii')
+        data = bytes("L", 'utf-8')
         self.sock.send(data)
 
     def createWidgets(self):
