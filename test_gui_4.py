@@ -1,14 +1,11 @@
 from tkinter import *
 from matplotlib.backends.backend_tkagg import (
     FigureCanvasTkAgg, NavigationToolbar2Tk)
-# Implement the default Matplotlib key bindings.
-from matplotlib.backend_bases import key_press_handler
-from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import numpy as np
-import random
 from bluetooth_read_class import bluetoothMyoware as btm
+import pandas as pd
 
 myowearable = btm()
 
@@ -27,9 +24,9 @@ root.grid_columnconfigure(0, weight=1)
 
 top_frame.grid(row=0, sticky="ew")
 center.grid(row=1, sticky="nsew")
-btm_frame.grid(row=3, sticky="ew")
+btm_frame.grid(row=5, sticky="ew")
 
-# create the widgets for the top frame
+# Functions for top frame
 def _quit():
     root.quit()     # stops mainloop
     root.destroy()  # this is necessary on Windows to prevent
@@ -61,6 +58,7 @@ def connection_label(label):
             label.after(1000, update)
     update()
 
+# create the widgets for the top frame
 quit_button = Button(top_frame, text="Quit", command=_quit)
 start_button = Button(top_frame, text="Start", command=start)
 stop_button = Button(top_frame, text="Stop", command=stop)
@@ -92,58 +90,32 @@ ctr_right.grid(row=0, column=2, sticky="ns")
 output_header = Label(ctr_left, text="Raw Output")
 output_header.pack(side=TOP)
 
-ys = [0] * 30
+ys = [0] * 200
 
 def get_sensor_value():
     data = myowearable.data_collection()
-    string_data = str(data)
-
-    position = string_data.find("b'")
-
-    # try:
-    #     point = btm.hex_to_dec(hex)
-    #     print(point)
-    # except:
-    #     print("ERROR")
-    #     print(hex)
-    #     point = 0
-    # return point
-    
-    try:
-        hex = string_data[position+4]+string_data[position+5]
-        value = 8*btm.hex_to_dec(hex)
-        print(value)
-    except:
-        try:
-            hex = string_data[position+2]
-            value = 8*ord(hex)
-            print(value)
-        except:
-            print("ERROR")
-            print(data)
-            value = 0
-    
-    return value
+    result = btm.convert_raw_data(data)
+    return result
 
 def readSensors():
-    for x in range(0,30):
-        if x < 29:
+    for x in range(0,200):
+        if x < 199:
            ys[x] = ys[x+1] 
         else:
-            ys[29] = get_sensor_value()
+            ys[199] = get_sensor_value()
     
-    output_1.set(ys[20])
-    output_2.set(ys[21])
-    output_3.set(ys[22])
-    output_4.set(ys[23])
-    output_5.set(ys[24])
-    output_6.set(ys[25])
-    output_7.set(ys[26])
-    output_8.set(ys[27])
-    output_9.set(ys[28])
-    output_10.set(ys[29])
+    output_1.set(ys[190])
+    output_2.set(ys[191])
+    output_3.set(ys[192])
+    output_4.set(ys[193])
+    output_5.set(ys[194])
+    output_6.set(ys[195])
+    output_7.set(ys[196])
+    output_8.set(ys[197])
+    output_9.set(ys[198])
+    output_10.set(ys[199])
     
-    ctr_left.after(100, readSensors)
+    ctr_left.after(25, readSensors)
 
 output_1 = StringVar()
 output_2 = StringVar()
@@ -204,11 +176,12 @@ warning_header.pack(side=TOP)
 
 fig = plt.Figure()
 
-x = np.arange(0, 30, 1)        # x-array
+x = np.arange(0, 200, 1)        # x-array
 
 def animate(i):
     line.set_ydata(ys)  # update the data
-    return line,
+    line_2.set_ydata(rmsv)
+    return line, line_2,
 
 canvas = FigureCanvasTkAgg(fig, ctr_mid)  # A tk.DrawingArea.
 #canvas.draw()
@@ -218,15 +191,21 @@ toolbar = NavigationToolbar2Tk(canvas, btm_frame)
 toolbar.update()
 canvas.get_tk_widget().pack(side=TOP, fill=BOTH, expand=1)
 
-ax = fig.add_subplot(111)
-ax.set_ylim([0,1000])
+ax = fig.add_subplot(211)
+ax.set_ylim([0,6000])
+ax.set_ylabel("milivolts")
 line, = ax.plot(x, ys)
+rmsv = pd.Series(np.array(ys)).rolling(window=15).mean()
+line_2, = ax.plot(x,rmsv, 'r')
 ani = animation.FuncAnimation(fig, animate, np.arange(1, 200), interval=25, blit=True)
 
 def start_sensor_collection():
-    ctr_left.after(100,readSensors)
+    ctr_left.after(25,readSensors)
 
 def stop_sensor_collection():
     ctr_left.after_cancel()
+
+analysis = fig.add_subplot(212)
+analysis.set_ylim([0,6000])
 
 root.mainloop()
