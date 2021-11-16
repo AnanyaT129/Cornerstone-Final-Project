@@ -98,24 +98,39 @@ def get_sensor_value():
     data = myowearable.data_collection()
     string_data = str(data)
 
-    position = string_data.find('x')
-    hex = string_data[position+1]+string_data[position+2]
+    position = string_data.find("b'")
 
+    # try:
+    #     point = btm.hex_to_dec(hex)
+    #     print(point)
+    # except:
+    #     print("ERROR")
+    #     print(hex)
+    #     point = 0
+    # return point
+    
     try:
-        point = btm.hex_to_dec(hex)
-        print(point)
+        hex = string_data[position+4]+string_data[position+5]
+        value = 8*btm.hex_to_dec(hex)
+        print(value)
     except:
-        print("ERROR")
-        print(hex)
-        point = 0
-    return point
+        try:
+            hex = string_data[position+2]
+            value = 8*ord(hex)
+            print(value)
+        except:
+            print("ERROR")
+            print(data)
+            value = 0
+    
+    return value
 
 def readSensors():
     for x in range(0,30):
         if x < 29:
            ys[x] = ys[x+1] 
         else:
-            ys[29] = (8 * get_sensor_value())
+            ys[29] = get_sensor_value()
     
     output_1.set(ys[20])
     output_2.set(ys[21])
@@ -128,7 +143,7 @@ def readSensors():
     output_9.set(ys[28])
     output_10.set(ys[29])
     
-    ctr_left.after(1000, readSensors)
+    ctr_left.after(100, readSensors)
 
 output_1 = StringVar()
 output_2 = StringVar()
@@ -204,12 +219,12 @@ toolbar.update()
 canvas.get_tk_widget().pack(side=TOP, fill=BOTH, expand=1)
 
 ax = fig.add_subplot(111)
-ax.set_ylim([0,300])
+ax.set_ylim([0,1000])
 line, = ax.plot(x, ys)
 ani = animation.FuncAnimation(fig, animate, np.arange(1, 200), interval=25, blit=True)
 
 def start_sensor_collection():
-    ctr_left.after(1000,readSensors)
+    ctr_left.after(100,readSensors)
 
 def stop_sensor_collection():
     ctr_left.after_cancel()
