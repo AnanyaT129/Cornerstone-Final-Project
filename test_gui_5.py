@@ -8,6 +8,8 @@ from bluetooth_read_class import bluetoothMyoware as btm
 import pandas as pd
 
 myowearable = btm()
+raw_data_full = []
+data_counter = 0
 
 root = Tk()
 root.title('Test Gui')
@@ -32,7 +34,7 @@ def _quit():
     root.destroy()  # this is necessary on Windows to prevent
                     # Fatal Python Error: PyEval_RestoreThread: NULL tstate
 def start():
-    start_sensor_collection()
+    start_sensor_collection(data_counter)
 
 def stop():
     print("STOPPED")
@@ -57,6 +59,10 @@ def connection_label(label):
             label.config(text=str(result))
             label.after(1000, update)
     update()
+    
+def save_data():
+    with open('output.txt', 'w') as output:
+        output.write(str(raw_data_full))
 
 # create the widgets for the top frame
 quit_button = Button(top_frame, text="Quit", command=_quit)
@@ -65,6 +71,8 @@ stop_button = Button(top_frame, text="Stop", command=stop)
 connect_button = Button(top_frame, text="Connect",command=connect)
 connect_label = Label(top_frame)
 status_label = Label(top_frame, text="Connection Status: ")
+save_button = Button(top_frame, text="Save", command=save_data)
+
 
 # layout the widgets in the top frame
 quit_button.grid(row=1, column=6)
@@ -74,6 +82,7 @@ connect_button.grid(row=1, column=0)
 status_label.grid(row=1, column=8)
 connect_label.grid(row=1, column=10)
 connection_label(connect_label)
+save_button.grid(row=1, column = 14)
 
 # create the center widgets
 center.grid_rowconfigure(0, weight=1)
@@ -91,18 +100,33 @@ output_header = Label(ctr_left, text="Raw Output")
 output_header.pack(side=TOP)
 
 ys = [0] * 200
+# replace 0 with resting value eventually
+rms = [0] * 200
 
 def get_sensor_value():
     data = myowearable.data_collection()
     result = btm.convert_raw_data(data)
     return result
 
-def readSensors():
+# RMS to smooth out data
+def root_mean_square(values):
+    squared_data = [0] * 15
+    for i in range(len(values)):
+        squared_data[i] = ys[i]**2
+    rms_point = np.sqrt(np.mean(squared_data))
+    return rms_point
+    
+def readSensors(data_counter):
     for x in range(0,200):
         if x < 199:
            ys[x] = ys[x+1] 
+           rms[x] = rms[x+1]
         else:
             ys[199] = get_sensor_value()
+            data_counter = data_counter + 1
+            values = ys[185:199]
+            rms[199] = root_mean_square(values)
+            raw_data_full.append(ys[199])
     
     output_1.set(ys[190])
     output_2.set(ys[191])
@@ -115,7 +139,7 @@ def readSensors():
     output_9.set(ys[198])
     output_10.set(ys[199])
     
-    ctr_left.after(25, readSensors)
+    ctr_left.after(25, readSensors(data_counter))
 
 output_1 = StringVar()
 output_2 = StringVar()
@@ -181,7 +205,7 @@ x = np.arange(0, 200, 1)        # x-array
 def animate(i):
     line.set_ydata(ys)  # update the data
     # line_2.set_ydata(rms)
-    line_3.set_ydata(sig_fft)
+    # line_3.set_ydata(sig_fft)
     return line,
 
 canvas = FigureCanvasTkAgg(fig, ctr_mid)  # A tk.DrawingArea.
@@ -196,31 +220,32 @@ ax = fig.add_subplot(211)
 ax.set_ylim([0,6000])
 ax.set_ylabel("millivolts")
 line, = ax.plot(x, ys)
-
-# RMS to smooth out data 
-# rms = np.sqrt(np.mean(ys**2))
-# line_2, = ax.plot(x,rms, 'g')
+line_2, = ax.plot(x, rms, 'g')
 
 ani = animation.FuncAnimation(fig, animate, np.arange(1, 200), interval=25, blit=True)
 
-def start_sensor_collection():
-    ctr_left.after(25,readSensors)
+def start_sensor_collection(data_counter):
+    raw_data_full.clear
+    ctr_left.after(25,readSensors(data_counter))
+    data_counter = 0
 
 def stop_sensor_collection():
     ctr_left.after_cancel()
 
 # fft
-rate = 40 # in Hz
-analysis = fig.add_subplot(212)
-x_fft = np.linspace(0, rate / 200, rate / 2) # 200 points displayed
+def fourier_transform():
+    if (data_counter % 1200) == 0:
+        rate = 40 # in Hz
+        analysis = fig.add_subplot(212)
+        x_fft = np.arange(0, (rate / 2), (rate / 400)) # 200 points displayed
 
-analysis.set_ylim([0,6000])
-analysis.set_xlim([0, rate / 2])
+        analysis.set_ylim([0,6000])
+        analysis.set_xlim([0, rate / 2])
 
-# calculate one-sided FFT, so multiply amplitude by 2
-sig_fft = np.abs(np.fft.fft(ys) * 2) # may have to divide by something... 
-line_3 = ax.semilogx(x_fft, sig_fft, 'r')
-# power spectrum density of fft...will use this for medfreq if fft actually works :/
-psd = (sig_fft / 2) ** 2
+        # calculate one-sided FFT, so multiply amplitude by 2
+        sig_fft = np.abs(np.fft.fft(ys) * 2) # may have to divide by something... 
+        line_3, = analysis.plot(x_fft, sig_fft, 'r')
+        # power spectrum density of fft...will use this for medfreq if fft actually works :/
+        psd = (sig_fft / 2) ** 2
 
 root.mainloop()
