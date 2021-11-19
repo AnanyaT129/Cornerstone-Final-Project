@@ -19,21 +19,22 @@ class bluetoothMyoware:
         return str(string)[n - 1]
     
     def hex_to_dec(hex):
+                        
         try:
-            tens_digit = int(bluetoothMyoware.getchar(hex,1))
+            sixteen_digit = int(bluetoothMyoware.getchar(hex,1))
         except:
             if bluetoothMyoware.getchar(hex,1) == 'a':
-                tens_digit = 10
+                sixteen_digit = 10
             if bluetoothMyoware.getchar(hex,1) == 'b':
-                tens_digit = 11
+                sixteen_digit = 11
             if bluetoothMyoware.getchar(hex,1) == 'c':
-                tens_digit = 12
+                sixteen_digit = 12
             if bluetoothMyoware.getchar(hex,1) == 'd':
-                tens_digit = 13
+                sixteen_digit = 13
             if bluetoothMyoware.getchar(hex,1) == 'e':
-                tens_digit = 14
+                sixteen_digit = 14
             if bluetoothMyoware.getchar(hex,1) == 'f':
-                tens_digit = 15
+                sixteen_digit = 15
         
         try:
             ones_digit = int(bluetoothMyoware.getchar(hex,2))
@@ -51,7 +52,7 @@ class bluetoothMyoware:
             if bluetoothMyoware.getchar(hex,2) == 'f':
                 ones_digit = 15
         
-        number = 16*tens_digit + ones_digit
+        number = 16*sixteen_digit + ones_digit
         return number
 
     def plot_data(self, x_data, y_data):
@@ -69,3 +70,22 @@ class bluetoothMyoware:
 
         # Draw the graph
         plt.show()
+    
+    def convert_raw_data(raw_data):
+        string_data = str(raw_data)
+
+        position = string_data.find("b'")
+        
+        try:
+            hex = string_data[position+4]+string_data[position+5]
+            value = 8*bluetoothMyoware.hex_to_dec(hex)
+            print(value)
+        except:
+            try:
+                hex = string_data[position+2]
+                value = 8*ord(hex)
+            except:
+                value = 0
+        
+        value = value*5000/1023
+        return value
