@@ -69,10 +69,13 @@ y_range = [0, 6000]  # Range of possible Y values to display
 
 # Create figure for plotting
 fig = plt.figure()
-ax = fig.add_subplot(1, 1, 1)
+ax = fig.add_subplot(2, 1, 1)
 xs = list(range(0, 200))
 ys = [0] * x_len
 ax.set_ylim(y_range)
+
+analysis = fig.add_subplot(212)
+analysis.set_ylim([0,6000])
 
 # Create a blank line. We will update the line in animate
 line, = ax.plot(xs, ys)
@@ -87,6 +90,8 @@ def animate(i, ys):
 
     # Read temperature (Celsius) from TMP102
     emg_value = get_sensor_value()
+    
+    raw_data_full.append(emg_value)
 
     # Add y to list
     ys.append(emg_value)
@@ -100,6 +105,7 @@ def animate(i, ys):
     return line,
 
 def start_sensor_collection():
+    raw_data_full.clear()
     ani = animation.FuncAnimation(fig,
     animate,
     fargs=(ys,),
