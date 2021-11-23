@@ -1,6 +1,12 @@
 from tkinter import *
 import bluetooth
 import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+from scipy import integrate
+from scipy import signal
+from matplotlib.backends.backend_pdf import PdfPages
+import math
 
 class bluetoothMyoware:
     def __init__(self):
@@ -89,3 +95,63 @@ class bluetoothMyoware:
         
         value = value*5000/1023
         return value
+    
+    def open_data_file(filename):
+        # open data file
+        with open(filename) as f:
+            voltage_list = f.read()
+
+        voltage_list = voltage_list[1:len(voltage_list)-2]
+        voltage_list = voltage_list.split(',')
+        voltage_list = list(map(float, voltage_list))
+        return voltage_list
+    
+    def make_pdf(samples, voltage_list, rms, freqs, volt_fft, t, medfreq):
+        # pdf function (only taking created graphs as data inputs)
+        def make_pdf(x, y, title, xlabel, ylabel, page):
+            plt.figure()
+            plt.clf()
+
+            plt.plot(x,y)
+            graph = plt.title(title)
+            plt.ylabel(xlabel) 
+            plt.xlabel(ylabel)
+            page.savefig(plt.gcf())
+        
+        with PdfPages('Myowearable_Analysis.pdf') as page:
+            make_pdf(samples, voltage_list, 'Myoware sEMG Data', 'Samples', 'Voltage (mV)', page)
+            make_pdf(samples, rms, 'RMS of sEMG Data', 'Voltage (mV)', 'Samples', page)
+            make_pdf(freqs, volt_fft, 'Fourier Analysis of sEMG Data', 'Amplitude', 'Frequency (Hz)', page)
+            make_pdf(t, medfreq, 'Median Frequency Over Time', 'Time (s)', 'Frequency (Hz)', page)
+    
+    def rms(N, voltage_list):
+        squared_data = [0] * N
+        rms = [0] * N
+        for i in range(0, N):
+            squared_data[i] = voltage_list[i] ** 2
+        rms_squared = pd.Series(squared_data).rolling(window=15).mean()
+        rms = np.sqrt(rms_squared)
+
+        return rms
+    
+    def fft(voltage_list, N):
+        volt_fft = np.fft.fft(voltage_list-np.mean(voltage_list)) # filtering out mean
+        i = range(math.floor(N/2)+1)
+
+        volt_fft = abs(volt_fft[i])*2
+        
+        return volt_fft
+    
+    def medfreq(voltage_list, Fs, Fnyq, freqs, N):
+        freq, psd = signal.periodogram(voltage_list, fs = Fs)
+        psd_per_sec = np.array_split(psd, int(len(psd) / (N/Fs))) # break PSD into arrays containing 1s of data
+        medfreq = []
+
+        for power in psd_per_sec:
+            
+            freq_per_sec = np.arange(0, Fnyq, Fnyq/len(power)) 
+            area_freq = integrate.cumtrapz(power, freq_per_sec, initial=0) # cumulative power at each frequency
+            total_power = area_freq[-1] 
+            medfreq.append([freqs[np.where(area_freq >= total_power / 2)[0][0]]]) # medfreq located where power/2
+        
+        return medfreq
