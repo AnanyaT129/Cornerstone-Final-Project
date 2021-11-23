@@ -23,7 +23,7 @@ void loop()
   BTserial.write(q/8);     //Sends it to RX/TX pins (refernced as 9 and 10 above)
   Serial.println(q);       //Displays it on serial monitor
   delay(50);               //Pause so it's not continuous
-  if (q>=540) 
+  if (q>=550) 
     {
     tone(buzzerPin, 262);
     delay(250);
