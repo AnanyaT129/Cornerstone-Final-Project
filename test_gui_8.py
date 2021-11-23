@@ -5,7 +5,7 @@ import numpy as np
 from bluetooth_read_class import bluetoothMyoware as btm
 
 myowearable = btm()
-raw_data_full = []
+raw_data_full = [0, 0]
 
 root = Tk()
 root.title('Test Gui 7')
@@ -23,15 +23,16 @@ btm_frame.grid(row=1, sticky="ew")
 
 # Functions for top frame
 def _quit():
+    with open('output.txt', 'w') as output:
+        output.write(str(raw_data_full))
+    
+    plt.close()
     root.quit()     # stops mainloop
     root.destroy()  # this is necessary on Windows to prevent
                     # Fatal Python Error: PyEval_RestoreThread: NULL tstate
+
 def start():
     start_sensor_collection()
-
-def stop():
-    print("STOPPED")
-    stop_sensor_collection()
 
 def connect():
     try:
@@ -52,10 +53,6 @@ def connection_label(label):
             label.config(text=str(result))
             label.after(1000, update)
     update()
-
-def save_data():
-    with open('output.txt', 'w') as output:
-        output.write(str(raw_data_full))
 
 def get_sensor_value():
     data = myowearable.data_collection()
@@ -112,18 +109,20 @@ def start_sensor_collection():
     blit=True)
     plt.show()
 
-def stop_sensor_collection():
-    plt.close(fig) 
+# analysis sampling rate, frequencies, etc. 
+list_of_data = btm.open_data_file('output.txt')
+N = len(list_of_data)
+samples = range(N)
+Fs = 40; # in Hz
+Fnyq = Fs / 2
+freqs = np.arange(0, Fnyq, Fs/N)
 
-def analyze():
-    # analysis sampling rate, frequencies, etc. 
-    list_of_data = btm.open_data_file('output.txt')
-    N = len(list_of_data)
-    samples = range(N)
-    Fs = 40; # in Hz
-    Fnyq = Fs / 2
-    freqs = np.arange(0, Fnyq, Fs/N)
+rms = btm.rms(N, list_of_data)
+volt_fft = btm.fft(list_of_data, N)
+medfreq = btm.medfreq(list_of_data, Fs, Fnyq, freqs, N)
+t = np.arange(len(medfreq))
 
+def analysis_setup(list_of_data, N, samples, Fnyq, freqs, rms, volt_fft, medfreq, t):
     figure, axes = plt.subplots(2, 2)
     figure.tight_layout(pad=2.5)
 
@@ -138,7 +137,6 @@ def analyze():
 
     # GRAPH 2: RMS vs. Samples
     # RMS to smooth out data
-    rms = btm.rms(N, list_of_data)
     rms_ax = plt.subplot(2, 2, 2)
     rms_ax.set_ylim([0, 6000])
     rms_ax.set_xlim([0, 500])
@@ -148,7 +146,6 @@ def analyze():
     rms_ax.set_xlabel('Samples')
 
     # GRAPH 3: Discrete Fourier Transform --> Frequency Domain
-    volt_fft = btm.fft(list_of_data, N)
     fft_ax = plt.subplot(2, 2, 3)
     fft_ax.set_xlim([0, Fnyq])
     plt.plot(freqs, volt_fft, '-b')
@@ -157,9 +154,7 @@ def analyze():
     fft_ax.set_xlabel('Frequency (Hz)')
 
     # GRAPH 4: Median Frequency over Time - kind of sketchy atm
-    medfreq = btm.medfreq(list_of_data, Fs, Fnyq, freqs, N)
     med_ax = plt.subplot(2, 2, 4)
-    t = np.arange(len(medfreq))
     plt.plot(t, medfreq, 'o') # need to figure out why len(medfreq) != 16...
     m, b = np.polyfit(t, medfreq, 1) # returns slope of median frequency <- can use this for..more analysis :,)
     medfreq_func = m*t + b
@@ -170,30 +165,29 @@ def analyze():
 
     plt.show()
 
-# def save_data():
-#     btm.make_pdf(samples, list_of_data, rms, freqs, volt_fft, t, medfreq)
+def analyze():
+    analysis_setup(list_of_data, N, samples, Fnyq, freqs, rms, volt_fft, medfreq, t)
+
+def save_data_pdf():
+    btm.make_pdf(samples, list_of_data, rms, freqs, volt_fft, t, medfreq)
 
 # create the widgets for the top frame
 quit_button = Button(top_frame, text="Quit", command=_quit)
 start_button = Button(top_frame, text="Start", command=start)
-stop_button = Button(top_frame, text="Stop", command=stop)
 connect_button = Button(top_frame, text="Connect",command=connect)
 connect_label = Label(top_frame)
 status_label = Label(top_frame, text="Connection Status: ")
-save_button = Button(top_frame, text="Save", command=save_data)
 analysis_button = Button(top_frame, text="Analyze", command=analyze)
-# save_data_button = Button(top_frame, text="Save Data", command=save_data)
+save_data_button = Button(top_frame, text="Save Data", command=save_data_pdf)
 
 # layout the widgets in the top frame
 quit_button.grid(row=1, column=6)
 start_button.grid(row=1, column=2)
-stop_button.grid(row=1, column=4)
 connect_button.grid(row=1, column=0)
 status_label.grid(row=1, column=8)
 connect_label.grid(row=1, column=10)
 connection_label(connect_label)
-save_button.grid(row=1, column = 14)
-analysis_button.grid(rows=2, column = 0)
-# save_data_button.grid(rows=2, columns = 6)
+analysis_button.grid(rows=1, column = 14)
+save_data_button.grid(rows=1, columns = 16)
 
 root.mainloop()
