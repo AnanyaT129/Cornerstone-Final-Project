@@ -104,9 +104,10 @@ class bluetoothMyoware:
         voltage_list = voltage_list[1:len(voltage_list)-2]
         voltage_list = voltage_list.split(',')
         voltage_list = list(map(float, voltage_list))
+        
         return voltage_list
     
-    def make_pdf(samples, voltage_list, rms, freqs, volt_fft, t, medfreq):
+    def make_pdf(samples, voltage_list, rms, freqs, volt_fft, t, meanfreq):
         # pdf function (only taking created graphs as data inputs)
         def make_pdf(x, y, title, xlabel, ylabel, page):
             plt.figure()
@@ -114,15 +115,15 @@ class bluetoothMyoware:
 
             plt.plot(x,y)
             graph = plt.title(title)
-            plt.ylabel(xlabel) 
-            plt.xlabel(ylabel)
+            plt.xlabel(xlabel) 
+            plt.ylabel(ylabel)
             page.savefig(plt.gcf())
         
         with PdfPages('Myowearable_Analysis.pdf') as page:
             make_pdf(samples, voltage_list, 'Myoware sEMG Data', 'Samples', 'Voltage (mV)', page)
-            make_pdf(samples, rms, 'RMS of sEMG Data', 'Voltage (mV)', 'Samples', page)
+            make_pdf(samples, rms, 'RMS of sEMG Data', 'Samples', 'Voltage (mV)', page)
             make_pdf(freqs, volt_fft, 'Fourier Analysis of sEMG Data', 'Amplitude', 'Frequency (Hz)', page)
-            make_pdf(t, medfreq, 'Median Frequency Over Time', 'Time (s)', 'Frequency (Hz)', page)
+            make_pdf(t, meanfreq, 'Mean Frequency Over Time', 'Time (s)', 'Frequency (Hz)', page)
     
     def rms(N, voltage_list):
         squared_data = [0] * N
@@ -135,23 +136,53 @@ class bluetoothMyoware:
         return rms
     
     def fft(voltage_list, N):
-        volt_fft = np.fft.fft(voltage_list-np.mean(voltage_list)) # filtering out mean
-        i = range(math.floor(N/2)+1)
 
+        volt_fft = np.fft.fft(voltage_list-np.mean(voltage_list)) # filtering out mean
+        i = range(int(N/2))
         volt_fft = abs(volt_fft[i])*2
         
         return volt_fft
     
-    def medfreq(voltage_list, Fs, Fnyq, freqs, N):
-        freq, psd = signal.periodogram(voltage_list, fs = Fs)
-        psd_per_sec = np.array_split(psd, int(len(psd) / (N/Fs))) # break PSD into arrays containing 1s of data
+    def meanfreq(voltage_list, Fs, Fnyq, freqs, N):
+        t = int(N/Fs)
+        volt_per_sec = np.array_split(voltage_list, t)
         medfreq = []
-
-        for power in psd_per_sec:
+        meanfreq = []
+        for sec in volt_per_sec:
+            fft = np.fft.fft(sec)
+            i = range(int(len(sec)/2))
+            fft = fft[i]
+            fft[2:-2] = 2 * fft[2:-2]
+            psd_per_sec = (1/(len(sec) * Fs)) * (abs(fft) ** 2) # psd function
+            freq_per_sec = np.arange(0, Fnyq, Fs/len(sec))
             
-            freq_per_sec = np.arange(0, Fnyq, Fnyq/len(power)) 
-            area_freq = integrate.cumtrapz(power, freq_per_sec, initial=0) # cumulative power at each frequency
-            total_power = area_freq[-1] 
-            medfreq.append([freqs[np.where(area_freq >= total_power / 2)[0][0]]]) # medfreq located where power/2
+            area_freq = integrate.cumtrapz(psd_per_sec, freq_per_sec[i], initial=0) # cumulative power at each frequency
+            
+            # total_power = area_freq[-1] 
+            mpf = sum(area_freq * freq_per_sec[i]) / sum(area_freq) # meanfrequency
+            meanfreq.append(mpf) 
+            # medfreq.append([freqs[np.where(area_freq >= total_power / 2)[0][0]]]) # medfreq located where power/2
         
-        return medfreq
+
+        return meanfreq
+
+    def analyze_slope(t, meanfreq):
+        # slope analysis 
+        m, b = np.polyfit(t, meanfreq, 1) # returns slope of median frequency <- can use this for..more analysis :,)
+        meanfreq_func = m*t + b
+        m = np.around(m, 3)
+        if m < 0 and m >= -0.5:
+            print('Rate of change in MNF:', m)
+            print('Slight progression of muscle fatigue. Keep going.')
+        elif m < -0.5 and m < -1:
+            print('Rate of change in MNF:', m)
+            print('Increased progression of muscle fatigue. Consider the difficulty of the past activity as your current peak ability.')
+        elif m <= -1:
+            print('Rate of change in MNF:', m)
+            print('Extreme progression of muscle fatigue. Take a break or choose a less strenuous activity.')
+        elif m >= 0:
+            print('Decrease in muscle fatigue is unexpected. Fixing sensor placement recommended.')
+        else:
+            print('Check sensor placement and try data collection / analysis again.')
+        
+        return meanfreq_func
