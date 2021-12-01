@@ -17,6 +17,9 @@ class bluetoothMyoware:
     def bluetooth_connect(self):
         self.sock.connect((self.addr, self.port))
     
+    def bluetooth_disconnect(self):
+        self.sock.close()
+    
     def data_collection(self):
         self.data = self.sock.recv(1024) #what is going on w this number
         return self.data
@@ -85,7 +88,6 @@ class bluetoothMyoware:
         try:
             hex = string_data[position+4]+string_data[position+5]
             value = 8*bluetoothMyoware.hex_to_dec(hex)
-            print(value)
         except:
             try:
                 hex = string_data[position+2]
@@ -107,23 +109,27 @@ class bluetoothMyoware:
         
         return voltage_list
     
-    def make_pdf(samples, voltage_list, rms, freqs, volt_fft, t, meanfreq):
+    def make_pdf(samples, voltage_list, rms, freqs, volt_fft, t, meanfreq, meanfreq_func):
         # pdf function (only taking created graphs as data inputs)
-        def make_pdf(x, y, title, xlabel, ylabel, page):
+        def make_pdf(x, y, title, xlabel, ylabel, style, page, x2 = {}, y2 = {}, style2 = 'ob'):
             plt.figure()
             plt.clf()
 
-            plt.plot(x,y)
+            if all(x2) == all(y2) and style2 == 'ob':
+                plt.plot(x, y, style)
+            else:
+                plt.plot(x, y, style)
+                plt.plot(x2, y2, style2)
             graph = plt.title(title)
             plt.xlabel(xlabel) 
             plt.ylabel(ylabel)
             page.savefig(plt.gcf())
         
-        with PdfPages('Myowearable_Analysis.pdf') as page:
-            make_pdf(samples, voltage_list, 'Myoware sEMG Data', 'Samples', 'Voltage (mV)', page)
-            make_pdf(samples, rms, 'RMS of sEMG Data', 'Samples', 'Voltage (mV)', page)
-            make_pdf(freqs, volt_fft, 'Fourier Analysis of sEMG Data', 'Amplitude', 'Frequency (Hz)', page)
-            make_pdf(t, meanfreq, 'Mean Frequency Over Time', 'Time (s)', 'Frequency (Hz)', page)
+        with PdfPages('/Users/sakib/OneDrive/Desktop/Final_Project_Cornerstone/Myowearable_Analysis.pdf') as page:
+            make_pdf(samples, voltage_list, 'Myoware sEMG Data', 'Samples', 'Voltage (mV)', '-k', page)
+            make_pdf(samples, rms, 'RMS of sEMG Data', 'Samples', 'Voltage (mV)', '-r', page)
+            make_pdf(freqs, volt_fft, 'Fourier Analysis of sEMG Data', 'Amplitude', 'Frequency (Hz)', '-k', page)
+            make_pdf(t, meanfreq, 'Mean Frequency Over Time', 'Time (s)', 'Frequency (Hz)', '-k', page, t, meanfreq_func, '--b')
     
     def rms(N, voltage_list):
         squared_data = [0] * N
@@ -186,3 +192,10 @@ class bluetoothMyoware:
             print('Check sensor placement and try data collection / analysis again.')
         
         return meanfreq_func
+    
+    def root_mean_square(values):
+        sum = 0
+        for i in range(len(values)):
+            sum = sum + values[i]**2
+        rms_point = math.sqrt(sum)
+        return rms_point
