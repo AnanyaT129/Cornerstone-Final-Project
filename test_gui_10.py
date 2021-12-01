@@ -2,6 +2,10 @@ from tkinter import *
 from matplotlib import pyplot as plt
 from matplotlib import animation as animation
 import numpy as np
+import sys
+
+sys.path.append("/Users/sakib/OneDrive/Desktop/Final_Project_Cornerstone")
+
 from bluetooth_read_class import bluetoothMyoware as btm
 
 myowearable = btm()
@@ -23,7 +27,7 @@ btm_frame.grid(row=1, sticky="ew")
 
 # Functions for top frame
 def _quit():
-    with open('output.txt', 'w') as output:
+    with open('/Users/sakib/OneDrive/Desktop/Final_Project_Cornerstone/output.txt', 'w') as output:
         output.write(str(raw_data_full))
     
     plt.close()
@@ -131,7 +135,7 @@ def start_sensor_collection():
     plt.show()
 
 # analysis sampling rate, frequencies, etc. 
-list_of_data = btm.open_data_file('output.txt')
+list_of_data = btm.open_data_file('/Users/sakib/OneDrive/Desktop/Final_Project_Cornerstone/output.txt')
 N = len(list_of_data)
 samples = range(N)
 Fs = 40; # in Hz
