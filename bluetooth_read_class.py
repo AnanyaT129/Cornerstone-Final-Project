@@ -174,21 +174,30 @@ class bluetoothMyoware:
 
     def analyze_slope(t, meanfreq):
         # slope analysis 
-        m, b = np.polyfit(t, meanfreq, 1) # returns slope of median frequency <- can use this for..more analysis :,)
+        m, b = np.polyfit(t, meanfreq, 1) # returns slope of mean frequency 
         meanfreq_func = m*t + b
+        
+        # slope analysis
         m = np.around(m, 3)
-        if m < 0 and m >= -0.5:
-            print('Rate of change in MNF:', m)
-            print('Slight progression of muscle fatigue. Keep going.')
-        elif m < -0.5 and m < -1:
-            print('Rate of change in MNF:', m)
-            print('Increased progression of muscle fatigue. Consider the difficulty of the past activity as your current peak ability.')
-        elif m <= -1:
-            print('Rate of change in MNF:', m)
-            print('Extreme progression of muscle fatigue. Take a break or choose a less strenuous activity.')
+        if m < 0:
+            if m >= -0.5:
+                print('Rate of change in MNF:', m)
+                print('Slight progression of muscle fatigue. Keep going.')
+            elif m < -0.5 and m > -1:
+                print('Rate of change in MNF:', m)
+                print('Increased progression of muscle fatigue. Consider the difficulty of the past activity as your current peak ability.')
+            else:
+                print('Rate of change in MNF:', m)
+                print('Extreme progression of muscle fatigue. Take a break or choose a less strenuous activity.')
         elif m >= 0:
-            print('Decrease in muscle fatigue is unexpected. Fixing sensor placement recommended.')
+            if m == 0 or m < 0.15:
+                print('Rate of change in MNF:', m)
+                print('Negligible change in muscle fatigue. You can do it.')
+            else:
+                print('Rate of change in MNF:', m)
+                print('Increase in motor unit recruitment occurring. Keep up the good work.')
         else:
+            print('Rate of change in MNF:', m)
             print('Check sensor placement and try data collection / analysis again.')
         
         return meanfreq_func
