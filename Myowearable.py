@@ -181,12 +181,9 @@ def analysis_setup(list_of_data, N, samples, Fnyq, freqs, rms, volt_fft, meanfre
     fft_ax.set_ylabel('Amplitude') 
     fft_ax.set_xlabel('Frequency (Hz)')
 
-    # GRAPH 4: Median Frequency over Time - kind of sketchy atm
+    # GRAPH 4: Mean Frequency over Time 
     med_ax = plt.subplot(2, 2, 4)
-    # t = int(N/Fs)
-    plt.plot(t, meanfreq, '-k') # need to figure out why len(medfreq) != 16...
-    # m, b = np.polyfit(t, meanfreq, 1) # returns slope of median frequency <- can use this for..more analysis :,)
-    # meanfreq_func = m*t + b
+    plt.plot(t, meanfreq, '-k') 
     plt.plot(t, meanfreq_func, '--b')
     med_ax.title.set_text('Mean Frequency Over Time')
     med_ax.set_ylabel('Frequency (Hz)') 
