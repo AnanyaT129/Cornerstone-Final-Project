@@ -1,3 +1,10 @@
-# Cornerstone-Final-Project
-Sakib Azgar, Violet Manxhari, Kaitlyn Ramesh, Ananya Tadigadapa, Ted Yee
-Professor Bala Maheswaran
+# The Myowearable Sleeve: A Surface Electromyography Injury Prevention Device
+
+<p>Sakib Azgar, Violet Manxhari, Kaitlyn Ramesh, Ananya Tadigadapa, Ted Yee<p>
+<p>Professor Bala Maheswaran<p>
+<p>The Myowearable was developed as a final project for Cornerstone of Engineering 1 & 2, GE1501 & 1502, at Northeastern University. It was also accepted for publication at the 2022 American Society of Engineering Education (ASEE) National Convention in Minneapolis.<p>
+
+## Abstract
+Many injured athletes face the possibility of recurring injury while unknowingly overstraining their muscles. To help prevent these, a sleeve-mounted medical device called the Myowearable was developed, able to monitor the amount of electrical stimulation in the adjacent muscle and alert the user when they are in danger of injury. Three electrodes of a surface electromyography (sEMG) sensor touching the skin record the stimulation in the muscle and send the collected data to a paired computer. The software on the computer provides real-time visual and audio feedback to the user, as well as analysis on the collected data to inform them when they are more in danger of hurting themselves. 
+
+The current Myowearable prototype was designed to analyze stimulation in one of two easily-accessible muscles depending on where the sleeve is worn: the semimembranosus hamstring tendon or the long head of the biceps brachii. It alerts the user if they exceed an adjustable limit, predicting when they might injure themselves. In future iterations, the limit will be pre-calculated based on user characteristics and demographics. Furthermore, it has two real-time graphs: one that plots the raw values read via Bluetooth from the EMG sensor and a second rms-smoothed graph of the data. After a data set is collected, the user can click a button on the connected graphical user interface that displays the aforementioned graphs as well two new ones. The third applies a Fourier transform to the signal to convert it to a frequency domain, and the fourth plots the mean frequency calculated per second of data. The slope of a line of best fit of the fourth graph can be used to determine the user’s current state of muscle fatigue, which can factor into an individual’s risk of injury [1], [2]. A commercially-available and non-professional product for use during exercise such as the Myowearable will provide cost-friendly access to a tool that can greatly reduce the risk of recurring injury.
