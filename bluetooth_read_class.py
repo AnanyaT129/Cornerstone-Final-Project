@@ -125,7 +125,7 @@ class bluetoothMyoware:
             plt.ylabel(ylabel)
             page.savefig(plt.gcf())
         
-        with PdfPages('/Users/sakib/OneDrive/Desktop/Final_Project_Cornerstone/Myowearable_Analysis.pdf') as page:
+        with PdfPages('/Users/tedye/Documents/Final_Project_Cornerstone/Myowearable_Analysis.pdf') as page:
             make_pdf(samples, voltage_list, 'Myoware sEMG Data', 'Samples', 'Voltage (mV)', '-k', page)
             make_pdf(samples, rms, 'RMS of sEMG Data', 'Samples', 'Voltage (mV)', '-r', page)
             make_pdf(freqs, volt_fft, 'Fourier Analysis of sEMG Data', 'Amplitude', 'Frequency (Hz)', '-k', page)
@@ -152,7 +152,6 @@ class bluetoothMyoware:
     def meanfreq(voltage_list, Fs, Fnyq, freqs, N):
         t = int(N/Fs)
         volt_per_sec = np.array_split(voltage_list, t)
-        medfreq = []
         meanfreq = []
         for sec in volt_per_sec:
             fft = np.fft.fft(sec)
@@ -164,8 +163,10 @@ class bluetoothMyoware:
             
             area_freq = integrate.cumtrapz(psd_per_sec, freq_per_sec[i], initial=0) # cumulative power at each frequency
             
-            # total_power = area_freq[-1] 
-            mpf = sum(area_freq * freq_per_sec[i]) / sum(area_freq) # meanfrequency
+            total_power = sum(area_freq) 
+            if total_power == 0:
+                total_power = .00001
+            mpf = sum(area_freq * freq_per_sec[i]) / total_power # meanfrequency
             meanfreq.append(mpf) 
             # medfreq.append([freqs[np.where(area_freq >= total_power / 2)[0][0]]]) # medfreq located where power/2
         
@@ -174,30 +175,21 @@ class bluetoothMyoware:
 
     def analyze_slope(t, meanfreq):
         # slope analysis 
-        m, b = np.polyfit(t, meanfreq, 1) # returns slope of mean frequency 
+        m, b = np.polyfit(t, meanfreq, 1) # returns slope of median frequency <- can use this for..more analysis :,)
         meanfreq_func = m*t + b
-        
-        # slope analysis
         m = np.around(m, 3)
-        if m < 0:
-            if m >= -0.5:
-                print('Rate of change in MNF:', m)
-                print('Slight progression of muscle fatigue. Keep going.')
-            elif m < -0.5 and m > -1:
-                print('Rate of change in MNF:', m)
-                print('Increased progression of muscle fatigue. Consider the difficulty of the past activity as your current peak ability.')
-            else:
-                print('Rate of change in MNF:', m)
-                print('Extreme progression of muscle fatigue. Take a break or choose a less strenuous activity.')
-        elif m >= 0:
-            if m == 0 or m < 0.15:
-                print('Rate of change in MNF:', m)
-                print('Negligible change in muscle fatigue. You can do it.')
-            else:
-                print('Rate of change in MNF:', m)
-                print('Increase in motor unit recruitment occurring. Keep up the good work.')
-        else:
+        if m < 0 and m >= -0.5:
             print('Rate of change in MNF:', m)
+            print('Slight progression of muscle fatigue. Keep going.')
+        elif m < -0.5 and m > -1:
+            print('Rate of change in MNF:', m)
+            print('Increased progression of muscle fatigue. Consider the difficulty of the past activity as your current peak ability.')
+        elif m <= -1:
+            print('Rate of change in MNF:', m)
+            print('Extreme progression of muscle fatigue. Take a break or choose a less strenuous activity.')
+        elif m >= 0:
+            print('Increase in muscle recruitment occurring. Keep up the good work.')
+        else:
             print('Check sensor placement and try data collection / analysis again.')
         
         return meanfreq_func
